@@ -34,7 +34,6 @@ func (r ExecResult) Result() (string, string) {
 
 	// no perfdata
 	if !strings.Contains(r.Stdout, "|") {
-		log.Warnf("No perfdata returned by check: %s", r.Name)
 		return r.Stdout, ""
 	}
 
@@ -98,9 +97,16 @@ func (c Check) Run() {
 		}
 	}(cancelCh)
 
-	ps, _ := exec.LookPath("cmd")
+	cm := strings.Split(c.Command, " ")
 
-	cmd, err := exec.Command(ps + " " + c.Command).CombinedOutput()
+	var cmd []byte
+	var err error
+	if len(cm) < 2 {
+		cmd, err = exec.Command(cm[0]).CombinedOutput()
+	} else {
+		cmd, err = exec.Command(cm[0], cm[1:]...).CombinedOutput()
+	}
+
 	res.Name = c.Name
 	res.Error = err
 	res.Stdout = string(cmd)
@@ -108,13 +114,6 @@ func (c Check) Run() {
 	log.Debugf("Results for check: %s have been sent through chan", c.Name)
 
 	c.Result <- res
-
-	// We must cancel the timeout goroutine otherwise it will produce odd timeouts
-	//
-	// {"level":"info","msg":"Starting mon-agent","time":"2022-03-24T21:22:56-07:00"}
-	// {"level":"info","msg":"Checks to execute: disk, xyz, xfz, xaz, xzz, xsz, disk, ","time":"2022-03-24T21:22:56-07:00"}
-	// {"level":"info","msg":"Error executing check: exec: \"C:/Users/angelf.rodriguez/Desktop/golang/mock/check_timeout.bat' \": file does not exist","time":"2022-03-24T21:22:56-07:00"}
-	// {"level":"info","msg":"Error executing check: timeout executing check: disk","time":"2022-03-24T21:23:06-07:00"}
 
 	log.Debugf("Cancelling check timeout timer: %s", c.Name)
 	cancelCh <- struct{}{}

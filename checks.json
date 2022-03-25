@@ -3,14 +3,14 @@
         "Name": "check_linux_disk_usage",
         "Description": "Checks disk usage on Linux",
         "Timeout": 30,
-        "Interval": 5,
-        "Command": "C:/Users/angelf.rodriguez/Desktop/golang/mockmock/check_timeout.bat"
+        "Interval": 60,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
     },
     {
-        "Name": "check_linux_all_disks",
+        "Name": "check_sleepy",
         "Description": "Checks disk usage on Linux",
-        "Timeout": 30,
-        "Interval": 5,
-        "Command": "C:/Users/angelf.rodriguez/Desktop/golang/mockmock/check_timeout.bat"
+        "Timeout": 10,
+        "Interval": 60,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/mock.sh"
     }
 ]
