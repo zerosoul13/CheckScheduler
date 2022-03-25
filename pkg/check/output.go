@@ -23,7 +23,7 @@ func Read(resCh chan ExecResult) {
 
 		// split the perfdata
 		if len(pdata) > 0 {
-			log.Debugf("perfdata: ", pdata)
+			log.Debugf("perfdata: %s", pdata)
 		} else {
 			log.Debugf("No perfdata returned by check: %s", message.Name)
 		}
@@ -32,6 +32,9 @@ func Read(resCh chan ExecResult) {
 
 // perfdata is the perfdata returned by the check
 // we must clean it to make it easier to post to Graphite-line services
+//
+// TODO: use a strings.NewReplacer() to replace the perfdata characters
+// instead of using harcoded options
 func perfdata(p string) string {
 	log.Debugf("Raw perfdata: %s", p)
 
@@ -42,5 +45,3 @@ func perfdata(p string) string {
 	p = strings.Replace(p, "/", "_", -1)
 	return p
 }
-
-// build a function that is able to sum 2 values

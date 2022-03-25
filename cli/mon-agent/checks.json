@@ -9,7 +9,7 @@
     {
         "Name": "check_sleepy",
         "Description": "Checks disk usage on Linux",
-        "Timeout": 10,
+        "Timeout": 16,
         "Interval": 60,
         "Command": "/home/osboxes/src/CheckScheduler/checks/mock.sh"
     }
