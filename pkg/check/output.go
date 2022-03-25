@@ -33,7 +33,7 @@ func Read(resCh chan ExecResult) {
 // perfdata is the perfdata returned by the check
 // we must clean it to make it easier to post to Graphite-line services
 func perfdata(p string) string {
-	log.Debugf("perfdata: %s", p)
+	log.Debugf("Raw perfdata: %s", p)
 
 	p = strings.Trim(p, " ")
 	p = strings.Trim(p, "\n")
@@ -42,3 +42,5 @@ func perfdata(p string) string {
 	p = strings.Replace(p, "/", "_", -1)
 	return p
 }
+
+// build a function that is able to sum 2 values
