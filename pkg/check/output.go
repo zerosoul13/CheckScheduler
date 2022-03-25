@@ -2,25 +2,37 @@ package check
 
 import (
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"mon-agent/pkg/tsdb"
 )
 
 // Read reads the results of the checks
 func Read(resCh chan ExecResult) {
-	for message := range resCh {
-		if message.Error != nil {
-			log.Infof("Error executing check: %s", message.Error)
-		}
+	graphite := tsdb.NewGraphite("localhost", "2003", "mon-agent", "tcp", time.Duration(10*time.Second))
 
+	for message := range resCh {
 		output, pdata := message.Result()
 
-		log.WithFields(log.Fields{
-			"check":    message.Name,
-			"exectime": message.ExecTime,
-			"perfdata": pdata,
-		}).Info(output)
+		if message.Error != nil {
+			log.WithFields(log.Fields{
+				"check":    message.Name,
+				"exectime": message.ExecTime,
+				"output":   output,
+				"error":    message.Error,
+			}).Error(output)
+		} else {
+			log.WithFields(log.Fields{
+				"check":    message.Name,
+				"exectime": message.ExecTime,
+				"output":   output,
+				"perfdata": pdata,
+			}).Info(output)
 
+			graphite.Write(pdata)
+		}
 		// split the perfdata
 		if len(pdata) > 0 {
 			log.Debugf("perfdata: %s", pdata)
@@ -41,7 +53,6 @@ func perfdata(p string) string {
 	p = strings.Trim(p, " ")
 	p = strings.Trim(p, "\n")
 
-	p = strings.Replace(p, " ", "_", -1)
 	p = strings.Replace(p, "/", "_", -1)
 	return p
 }

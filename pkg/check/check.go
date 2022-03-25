@@ -2,6 +2,7 @@ package check
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -38,8 +39,8 @@ func (c Check) Run() {
 	done := make(chan bool)
 
 	var res ExecResult
+	start := time.Now()
 	go func() {
-		start := time.Now()
 		log.Debugf("Calling check: %s", c.Name)
 
 		var cmd []byte
@@ -68,12 +69,17 @@ func (c Check) Run() {
 	timeout := time.After(time.Duration(c.Timeout) * time.Second)
 	select {
 	case <-timeout:
-		log.Errorf("Timeout for check: %s.", c.Name)
-		break
+		e := fmt.Errorf("Timeout for check: %s", c.Name)
+		res.Error = e
+		res.ExecTime = time.Since(start).Seconds()
+		res.Stdout = e.Error()
+		res.PerfData = e.Error()
+		res.Name = c.Name
+		c.Result <- res
+
 	case <-done:
 		log.Debugf("Check: %s has completed in %d seconds", c.Name, res.ExecTime)
 	}
-	return
 }
 
 // prepare prepares the command to be executed

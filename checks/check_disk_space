@@ -211,7 +211,7 @@ SpaceUsed_F=`btokmgt $SpaceUsed`
 SpaceFree_F=`btokmgt $SpaceFree`
 
 
-PerfData="'used space'=${SpaceUsed}B;${WarnSpaceAbs};${CritSpaceAbs};0;${SpaceTotal} 'used space (pct.)'=${SpaceUsedProc}%;${WarnSpace};${CritSpace};0;100"
+PerfData="used_space=${SpaceUsed} used_space_pct=${SpaceUsedProc}"
 
 if fcomp $SpaceUsedProc $WarnSpace
 then
