@@ -1,0 +1,16 @@
+[
+    {
+        "Name": "check_linux_disk_usage",
+        "Description": "Checks disk usage on Linux",
+        "Timeout": 30,
+        "Interval": 5,
+        "Command": "C:/Users/angelf.rodriguez/Desktop/golang/mockmock/check_timeout.bat"
+    },
+    {
+        "Name": "check_linux_all_disks",
+        "Description": "Checks disk usage on Linux",
+        "Timeout": 30,
+        "Interval": 5,
+        "Command": "C:/Users/angelf.rodriguez/Desktop/golang/mockmock/check_timeout.bat"
+    }
+]
