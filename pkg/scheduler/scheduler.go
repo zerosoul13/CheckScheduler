@@ -15,10 +15,11 @@ type Scheduler struct {
 	*gocron.Scheduler
 }
 
-func NewScheduler(cs []check.Check) *Scheduler {
+func NewScheduler(cs check.ChecksV2, resCh chan check.ExecResult) *Scheduler {
 	s := gocron.NewScheduler(time.UTC)
 	for _, c := range cs {
-		_, err := s.Every(c.Interval).Seconds().Do(c.Run)
+		log.Debugf("Adding check to scheduler: %s", c.Name)
+		_, err := s.Every(c.Interval).Seconds().Do(c.Run, resCh)
 		if err != nil {
 			log.Errorf("Error scheduling check: %s", err.Error())
 		}

@@ -11,6 +11,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ChecksV2 map[string]Check
+
+func (c ChecksV2) String() string {
+	s := ""
+
+	for _, checkName := range c {
+		s += checkName.Name + ", "
+	}
+
+	return s
+}
+
 // Check is a wrapper for a command
 // used to monitor a system
 type Check struct {
@@ -28,13 +40,10 @@ type Check struct {
 
 	// Timeout is the timeout in seconds to wait for the check to complete
 	Timeout int64
-
-	// Result is the channel to send the result of the check
-	Result chan ExecResult
 }
 
 // Run executes the check defined command
-func (c Check) Run() {
+func (c Check) Run(resCh chan ExecResult) {
 	// done	is a channel to signal the end of the check
 	done := make(chan bool)
 
@@ -47,23 +56,25 @@ func (c Check) Run() {
 		var err error
 
 		cm, args, hasArgs := c.prepare()
+		log.Debugf("Command: %s, Args: %s", cm, args)
 		if !hasArgs {
 			// This command does not have any extra arguments
 			cmd, err = exec.Command(cm).CombinedOutput()
 		} else {
 			cmd, err = exec.Command(cm, args...).CombinedOutput()
 		}
-		done <- true
 
 		res = ExecResult{
 			Name:     c.Name,
 			Error:    err,
 			Stdout:   string(cmd),
 			ExecTime: time.Since(start).Seconds(),
+			PerfData: string(cmd),
 		}
 
-		log.Debugf("Results for check: %s have been submitted", c.Name)
-		c.Result <- res
+		log.Debugf("Results for check: %s have been submitted. %v", c.Name, res)
+		resCh <- res
+		done <- true
 	}()
 
 	timeout := time.After(time.Duration(c.Timeout) * time.Second)
@@ -75,10 +86,10 @@ func (c Check) Run() {
 		res.Stdout = e.Error()
 		res.PerfData = e.Error()
 		res.Name = c.Name
-		c.Result <- res
+		resCh <- res
 
 	case <-done:
-		log.Debugf("Check: %s has completed in %d seconds", c.Name, res.ExecTime)
+		log.Infof("%s has completed in %f seconds", c.Name, res.ExecTime)
 	}
 }
 
@@ -110,12 +121,14 @@ func (c Checks) String() string {
 }
 
 // GetChecks returns a slice of checks
-func GetChecks(resCh chan ExecResult) (Checks, error) {
+func GetChecks() (ChecksV2, error) {
 	var err error
-	var checks Checks
+	var checks ChecksV2
+
+	checks = make(ChecksV2)
 
 	// read json file and unmarshal to Check type
-	f := "checks.json"
+	f := "checksv2.json"
 	file, err := os.Open(f)
 	if err != nil {
 		log.Errorf("Error opening file: %s", err)
@@ -126,12 +139,7 @@ func GetChecks(resCh chan ExecResult) (Checks, error) {
 			log.Errorf("Error decoding file: %s", err)
 			return checks, err
 		}
-
-		// set the result channel for each check
-		for i := range checks {
-			checks[i].Result = resCh
-		}
-
 	}
+
 	return checks, err
 }

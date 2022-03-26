@@ -2,20 +2,58 @@ package tsdb
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type Point struct {
-	Name  string
-	Value float64
-	Time  time.Time
+// NewGraphite returns a new Graphite client
+func NewGraphite(host string, port string, prefix string, protocol string, timeout time.Duration) *Graphite {
+	return &Graphite{
+		Host:     host,
+		Port:     port,
+		Prefix:   prefix,
+		Protocol: protocol,
+		Timeout:  timeout,
+	}
 }
 
-func (p *Point) String() string {
-	return ""
+type Point struct {
+	Name      string
+	Value     float64
+	Timestamp int64
+}
+
+func (p Point) String() string {
+	return fmt.Sprintf("%s %f %d\n", p.Name, p.Value, p.Timestamp)
+}
+
+func NewPoint(name string, value float64, timestamp int64) Point {
+
+	log.Debugf("Creating point: %s %f %d", name, value, timestamp)
+	return Point{
+		Name:      name,
+		Value:     0,
+		Timestamp: timestamp,
+	}
+}
+
+func NewPointFromString(check string, s string) (Point, error) {
+	log.Debug("Creating point from string: ", s)
+
+	// parse the string
+	v := strings.Split(s, "")
+
+	p := Point{
+		Name:      check + "." + v[0],
+		Value:     0,
+		Timestamp: time.Now().Unix(),
+	}
+
+	return p, nil
+
 }
 
 type Graphite struct {
@@ -35,23 +73,8 @@ type Graphite struct {
 	Timeout time.Duration
 }
 
-// NewGraphite returns a new Graphite client
-func NewGraphite(host string, port string, prefix string, protocol string, timeout time.Duration) *Graphite {
-	return &Graphite{
-		Host:     host,
-		Port:     port,
-		Prefix:   prefix,
-		Protocol: protocol,
-		Timeout:  timeout,
-	}
-}
-
 // Write writes the given points to Graphite
-func (g *Graphite) Write(point string) error {
-
-	if len(point) == 0 {
-		return nil
-	}
+func (g *Graphite) Write(points string) error {
 
 	// connect to graphite server
 	conn, err := net.DialTimeout(g.Protocol, net.JoinHostPort(g.Host, g.Port), g.Timeout)
@@ -59,21 +82,11 @@ func (g *Graphite) Write(point string) error {
 		return err
 	}
 
-	for _, p := range strings.Split(point, " ") {
-		log.Println("Sending point: ", p)
-
-		// Send the points to the Graphite server
-		p = strings.Split(p, "=")[1]
-		dp := fmt.Sprintf("%s %s %d\n", "mon-agent.check.output", p, time.Now().Unix())
-		_, err = conn.Write([]byte(dp))
-		if err != nil {
-			return err
-		}
+	// Send the points to the Graphite server
+	log.Info("Sending point: ", points)
+	_, err = conn.Write([]byte(points))
+	if err != nil {
+		return err
 	}
-
 	return conn.Close()
-}
-
-func (g *Graphite) format(point Point) error {
-	return nil
 }
