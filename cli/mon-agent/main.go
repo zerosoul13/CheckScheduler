@@ -26,11 +26,16 @@ func main() {
 	// We read the results of the checks from this channel
 	resCh := make(chan check.ExecResult)
 	go func() {
+		check.Publish(resCh)
+
+	}()
+
+	go func() {
 		check.Read(resCh)
 	}()
 
 	// Collect checks based on host identification
-	checks, err := check.GetChecks(resCh)
+	checks, err := check.GetChecks()
 	if err != nil {
 		log.Fatal("Error loading Checks: ", err)
 	} else {
@@ -38,7 +43,7 @@ func main() {
 	}
 
 	// Schedule the checks and collect the jobs
-	s := scheduler.NewScheduler(checks)
+	s := scheduler.NewScheduler(checks, resCh)
 
 	s.StartImmediately()
 	s.SingletonModeAll()

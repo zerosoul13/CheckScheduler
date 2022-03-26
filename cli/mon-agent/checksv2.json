@@ -1,0 +1,51 @@
+{
+    "check_linux_disk_usage": {
+        "Name": "check_linux_disk_usage",
+        "Description": "Checks disk usage on Linux",
+        "Timeout": 3,
+        "Interval": 2,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_memory_usage": {
+        "Name": "check_linux_memory_usage",
+        "Description": "Checks memory usage on Linux",
+        "Timeout": 3,
+        "Interval": 3,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_cpu_usage": {
+        "Name": "check_linux_cpu_usage",
+        "Description": "Checks CPU usage on Linux",
+        "Timeout": 3,
+        "Interval": 3,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_load_average": {
+        "Name": "check_linux_load_average",
+        "Description": "Checks load average on Linux",
+        "Timeout": 3,
+        "Interval": 3,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_disk_io": {
+        "Name": "check_linux_disk_io",
+        "Description": "Checks disk IO on Linux",
+        "Timeout": 3,
+        "Interval": 3,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_network_usage": {
+        "Name": "check_linux_network_usage",
+        "Description": "Checks network usage on Linux",
+        "Timeout": 3,
+        "Interval": 3,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    },
+    "check_linux_process_count": {
+        "Name": "check_linux_process_count",
+        "Description": "Checks process count on Linux",
+        "Timeout": 2,
+        "Interval": 10,
+        "Command": "/home/osboxes/src/CheckScheduler/checks/check_disk_space -p /home -w 80 -c 90"
+    }
+}
