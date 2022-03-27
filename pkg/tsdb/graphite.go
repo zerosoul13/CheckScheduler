@@ -10,11 +10,10 @@ import (
 )
 
 // NewGraphite returns a new Graphite client
-func NewGraphite(host string, port string, prefix string, protocol string, timeout time.Duration) *Graphite {
+func NewGraphite(host string, port string, protocol string, timeout time.Duration) *Graphite {
 	return &Graphite{
 		Host:     host,
 		Port:     port,
-		Prefix:   prefix,
 		Protocol: protocol,
 		Timeout:  timeout,
 	}
@@ -41,7 +40,7 @@ func NewPoint(name string, value float64, timestamp int64) Point {
 }
 
 func NewPointFromString(check string, s string) (Point, error) {
-	log.Debug("Creating point from string: ", s)
+	log.Debugf("Creating point from string: %s", s)
 
 	// parse the string
 	v := strings.Split(s, "")
@@ -53,7 +52,6 @@ func NewPointFromString(check string, s string) (Point, error) {
 	}
 
 	return p, nil
-
 }
 
 type Graphite struct {
@@ -83,7 +81,7 @@ func (g *Graphite) Write(points string) error {
 	}
 
 	// Send the points to the Graphite server
-	log.Info("Sending point: ", points)
+	log.Debugf("Publishing point: %s", points)
 	_, err = conn.Write([]byte(points))
 	if err != nil {
 		return err

@@ -2,53 +2,39 @@ package main
 
 import (
 	"flag"
-	"mon-agent/pkg/check"
-	"mon-agent/pkg/scheduler"
+	"mon-agent/pkg/manager"
+	"mon-agent/pkg/tsdb"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// loadProfile loads the profile from the file
+func loadProfile() {
+	log.Info("Loading profile..")
+}
+
 func main() {
-	level := flag.String("loglevel", "info", "Log level (info or debug)")
+	level := flag.Bool("debug", false, "Enable debug mode")
+	gHost := flag.String("graphite-host", "localhost", "Graphite host")
+	gPort := flag.String("graphite-port", "2003", "Graphite port")
+
 	flag.Parse()
 
-	if *level == "info" || *level != "debug" {
+	if *level {
+		log.SetLevel(log.DebugLevel)
+	} else {
 		log.SetLevel(log.InfoLevel)
 	}
+	log.Info("Starting mon-agent..")
 
-	if *level == "debug" {
-		log.SetLevel(log.DebugLevel)
-	}
+	// TODO: Implement
+	loadProfile()
 
-	log.Info("Starting mon-agent")
+	// Results collected are sent to the Graphite through publisher
+	c := tsdb.NewGraphite(*gHost, *gPort, "tcp", time.Duration(10*time.Second))
 
-	// resCh is a channel to receive the results of the checks
-	// We read the results of the checks from this channel
-	resCh := make(chan check.ExecResult)
-	go func() {
-		check.Publish(resCh)
-
-	}()
-
-	go func() {
-		check.Read(resCh)
-	}()
-
-	// Collect checks based on host identification
-	checks, err := check.GetChecks()
-	if err != nil {
-		log.Fatal("Error loading Checks: ", err)
-	} else {
-		log.Debugf("Checks to execute: %s", checks.String())
-	}
-
-	// Schedule the checks and collect the jobs
-	s := scheduler.NewScheduler(checks, resCh)
-
-	s.StartImmediately()
-	s.SingletonModeAll()
-	s.StartBlocking()
-
-	// Close the channel
-	close(resCh)
+	// Create a new manager with the list of checks and the publisher
+	manager := manager.NewManager(c)
+	manager.Start()
 }

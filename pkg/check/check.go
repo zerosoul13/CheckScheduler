@@ -11,9 +11,60 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ChecksV2 map[string]Check
+const CHECKSFILE = "checks.json"
 
-func (c ChecksV2) String() string {
+type Command struct {
+	name    string
+	command string
+	args    []string
+	hasArgs bool
+}
+
+func (c *Command) Exec() ExecResult {
+	var out []byte
+	var err error
+
+	start := time.Now()
+	if !c.hasArgs {
+		out, err = exec.Command(c.command).CombinedOutput()
+	} else {
+		out, err = exec.Command(c.command, c.args...).CombinedOutput()
+	}
+
+	return ExecResult{
+		Name:     c.name,
+		Error:    err,
+		Stdout:   string(out),
+		ExecTime: time.Since(start).Seconds(),
+		PerfData: string(out),
+	}
+
+}
+
+func NewCommand(name string, cmd string, args []string) *Command {
+	return &Command{
+		name:    name,
+		command: cmd,
+		args:    args,
+		hasArgs: len(args) > 0,
+	}
+}
+
+func NewCommandFromString(name string, cmd string) *Command {
+	s := strings.Split(cmd, " ")
+
+	if len(s) >= 2 {
+		return NewCommand(name, s[0], s[1:])
+	}
+
+	var args []string
+	return NewCommand(name, s[0], args)
+}
+
+// Checks holds a map of checks
+type Checks map[string]Check
+
+func (c Checks) String() string {
 	s := ""
 
 	for _, checkName := range c {
@@ -32,7 +83,7 @@ type Check struct {
 	// Description is the description of the check
 	Description string
 
-	// Command is the command to be executed
+	// Command is the command to be executed in string format
 	Command string
 
 	// Interval is the interval in seconds to execute the check
@@ -40,6 +91,9 @@ type Check struct {
 
 	// Timeout is the timeout in seconds to wait for the check to complete
 	Timeout int64
+
+	// cmd is the command to be executed by the check
+	cmd *Command
 }
 
 // Run executes the check defined command
@@ -47,39 +101,23 @@ func (c Check) Run(resCh chan ExecResult) {
 	// done	is a channel to signal the end of the check
 	done := make(chan bool)
 
+	if c.cmd == nil {
+		c.cmd = NewCommandFromString(c.Name, c.Command)
+	}
+
 	var res ExecResult
 	start := time.Now()
 	go func() {
 		log.Debugf("Calling check: %s", c.Name)
 
-		var cmd []byte
-		var err error
-
-		cm, args, hasArgs := c.prepare()
-		log.Debugf("Command: %s, Args: %s", cm, args)
-		if !hasArgs {
-			// This command does not have any extra arguments
-			cmd, err = exec.Command(cm).CombinedOutput()
-		} else {
-			cmd, err = exec.Command(cm, args...).CombinedOutput()
-		}
-
-		res = ExecResult{
-			Name:     c.Name,
-			Error:    err,
-			Stdout:   string(cmd),
-			ExecTime: time.Since(start).Seconds(),
-			PerfData: string(cmd),
-		}
-
+		res = c.cmd.Exec()
 		log.Debugf("Results for check: %s have been submitted. %v", c.Name, res)
 		resCh <- res
 		done <- true
 	}()
 
-	timeout := time.After(time.Duration(c.Timeout) * time.Second)
 	select {
-	case <-timeout:
+	case <-time.After(time.Duration(c.Timeout) * time.Second):
 		e := fmt.Errorf("Timeout for check: %s", c.Name)
 		res.Error = e
 		res.ExecTime = time.Since(start).Seconds()
@@ -93,43 +131,13 @@ func (c Check) Run(resCh chan ExecResult) {
 	}
 }
 
-// prepare prepares the command to be executed
-// returns the command and arguments
-func (c Check) prepare() (string, []string, bool) {
-	s := strings.Split(c.Command, " ")
-
-	if len(s) >= 2 {
-		return s[0], s[1:], true
-	}
-
-	var arg []string
-	return s[0], arg, false
-}
-
-// Checks is a slice of checks
-type Checks []Check
-
-// String returns a string representation of the checks
-func (c Checks) String() string {
-	s := ""
-
-	for _, checkName := range c {
-		s += checkName.Name + ", "
-	}
-
-	return s
-}
-
-// GetChecks returns a slice of checks
-func GetChecks() (ChecksV2, error) {
+// GetChecks returns a map of checks
+func GetChecks() (Checks, error) {
 	var err error
-	var checks ChecksV2
-
-	checks = make(ChecksV2)
+	checks := make(Checks)
 
 	// read json file and unmarshal to Check type
-	f := "checksv2.json"
-	file, err := os.Open(f)
+	file, err := os.Open(CHECKSFILE)
 	if err != nil {
 		log.Errorf("Error opening file: %s", err)
 		return checks, err
